@@ -1,6 +1,7 @@
 package com.example
 
 import com.example.internal.PersistentHashTable
+import com.example.model.PutRequest
 import io.ktor.features.*
 import org.slf4j.event.*
 import io.ktor.routing.*
@@ -11,14 +12,29 @@ import io.ktor.request.*
 import kotlin.test.*
 import io.ktor.server.testing.*
 import com.example.plugins.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.util.Random
 
 class ApplicationTest {
   @Test
   fun testRoot() {
     withTestApplication({ configureRouting(PersistentHashTable("test_table")) }) {
-      handleRequest(HttpMethod.Get, "/").apply {
-        assertEquals(HttpStatusCode.OK, response.status())
-        assertEquals("Hello World!", response.content)
+      var random = Random(42)
+      val n = 100
+      for (i in 0..n) {
+        val id = random.nextLong()
+        handleRequest(HttpMethod.Post, "/") {
+          setBody(Json.encodeToString(PutRequest(id, id.toString())))
+        }
+      }
+      random = Random(42)
+      for (i in 0..n) {
+        val id = random.nextLong()
+        handleRequest(HttpMethod.Get, "/?id=$id").apply {
+          assertEquals(HttpStatusCode.OK, response.status())
+          assertEquals(id.toString(), response.content)
+        }
       }
     }
   }

@@ -1,17 +1,27 @@
 package com.example.internal
 
 import com.example.HashTable
+import io.ktor.application.*
 
-class PartitionedHashTable: HashTable {
-  override fun get(id: Long): String? {
-    TODO("Not yet implemented")
+class PartitionedHashTable(name: String, private val partitionCount: Int = 2) : HashTable {
+
+  private val hashTables = List(partitionCount) { PersistentHashTable("${name}_$it") }
+
+  override suspend fun get(id: Long, call: ApplicationCall) {
+    val tableId = (id.toInt() % partitionCount + partitionCount) % partitionCount
+    hashTables[tableId].get(id, call)
   }
 
-  override fun put(id: Long, value: String, log: Boolean) {
-    TODO("Not yet implemented")
+  override suspend fun put(id: Long, value: String, call: ApplicationCall) {
+    val tableId = (id.toInt() % partitionCount + partitionCount) % partitionCount
+    hashTables[tableId].put(id, value, call)
   }
 
   override fun restore() {
-    TODO("Not yet implemented")
+    hashTables.forEach { it.restore() }
+  }
+
+  override fun start() {
+    hashTables.forEach { it.start() }
   }
 }

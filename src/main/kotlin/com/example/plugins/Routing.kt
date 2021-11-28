@@ -9,15 +9,16 @@ import io.ktor.request.*
 
 fun Application.configureRouting(hashTable: HashTable) {
   hashTable.restore()
+  hashTable.start()
   routing {
     get("/") {
       val id = call.request.queryParameters["id"]?.toLong() ?: error("kek")
-      val value = hashTable.get(id)
-      call.respondText(value ?: "not found")
+      hashTable.get(id, call)
+      call.respondBytes {  }
     }
     put("/") {
       val request = call.receive<PutRequest>()
-      hashTable.put(request.id, request.value)
+      hashTable.put(request.id, request.value, call)
     }
   }
 }

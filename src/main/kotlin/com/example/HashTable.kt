@@ -1,9 +1,13 @@
 package com.example
 
-interface HashTable {
-  fun get(id: Long): String?
+import io.ktor.application.*
 
-  fun put(id: Long, value: String, log: Boolean = true)
+interface HashTable {
+  suspend fun get(id: Long, call: ApplicationCall)
+
+  suspend fun put(id: Long, value: String, call: ApplicationCall)
 
   fun restore()
+
+  fun start()
 }
