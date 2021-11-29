@@ -10,13 +10,15 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.io.path.createDirectories
 
-class PersistentHashTable(name: String, initial_size: Int = 10000) : HashTable {
+class PersistentHashTable(val name: String, initial_size: Int = 10000) : HashTable {
   private var n: Int
   private var data: Array<Node?>
 
   private data class Node(val id: Long, val value: String)
 
-  private val logFile = logDirectory.resolve(name).toFile()
+  private var currentLogId = 0
+
+  private var logFile = logDirectory.resolve("${name}_$currentLogId").toFile()
 
   private val lock = ReentrantLock()
 
@@ -70,17 +72,33 @@ class PersistentHashTable(name: String, initial_size: Int = 10000) : HashTable {
       logFile.appendText("$n\n")
       return
     }
-    logFile.readLines().forEach {
-      val split = it.split(":")
-      if (split.size == 2) {
-        val (id, value) = split
-        internalPut(id.toLong(), value, false)
+    while (true) {
+      var shouldStop = true
+      logFile.readLines().forEach {
+        val split = it.split(":")
+        if (split.size == 2) {
+          val (id, value) = split
+          internalPut(id.toLong(), value, false)
+        } else if (it == "*") {
+          shouldStop = false
+          nextLogFile()
+        }
       }
+      if (shouldStop) break
     }
   }
 
   private fun logPut(id: Long, value: String) {
+    if (logFile.length() / 1024 / 1024 > 20) {
+      logFile.appendText("*\n")
+      nextLogFile()
+    }
     logFile.appendText("$id:$value\n")
+  }
+
+  private fun nextLogFile() {
+    currentLogId++
+    logFile = logDirectory.resolve("${name}_$currentLogId").toFile()
   }
 
   private fun findPos(id: Long): Int {

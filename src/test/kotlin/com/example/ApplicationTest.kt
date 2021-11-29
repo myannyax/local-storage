@@ -22,7 +22,7 @@ class ApplicationTest {
   fun testRoot() {
     withTestApplication({ configureRouting(PartitionedHashTable("test_table")) }) {
       var random = Random(42)
-      val n = 1000000
+      val n = 10000000
       for (i in 0..n) {
         val id = random.nextLong()
         handleRequest(HttpMethod.Post, "/") {
