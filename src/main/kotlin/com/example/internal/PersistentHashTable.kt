@@ -4,14 +4,10 @@ import com.example.HashTable
 import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.response.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.concurrent.thread
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlin.io.path.createDirectories
 
 class PersistentHashTable(name: String, initial_size: Int = 10000) : HashTable {
@@ -22,13 +18,9 @@ class PersistentHashTable(name: String, initial_size: Int = 10000) : HashTable {
 
   private val logFile = logDirectory.resolve(name).toFile()
 
-  sealed interface Request
+  private val lock = ReentrantLock()
 
-  private data class GetRequest(val id: Long, val call: ApplicationCall) : Request
-
-  private data class PutRequest(val id: Long, val value: String, val call: ApplicationCall) : Request
-
-  private val channel = Channel<Request>()
+  private var size = 0
 
   init {
     Files.createDirectories(logDirectory)
@@ -41,34 +33,18 @@ class PersistentHashTable(name: String, initial_size: Int = 10000) : HashTable {
     restore()
   }
 
-  override fun start() {
-    thread {
-      runBlocking {
-        for (request in channel) {
-          when (request) {
-            is GetRequest -> {
-              val res = internalGet(request.id)
-              request.call.respondText(
-                res ?: "not found",
-                status = if (res != null) HttpStatusCode.OK else HttpStatusCode.BadRequest
-              )
-            }
-            is PutRequest -> {
-              internalPut(request.id, request.value, true)
-              request.call.respond(HttpStatusCode.OK)
-            }
-          }
-        }
-      }
-    }
-  }
-
   override suspend fun get(id: Long, call: ApplicationCall) {
-    channel.send(GetRequest(id, call))
+    val res = lock.withLock {
+      internalGet(id)
+    }
+    call.respondText(res ?: "not found", status = if (res != null) HttpStatusCode.OK else HttpStatusCode.BadRequest)
   }
 
   override suspend fun put(id: Long, value: String, call: ApplicationCall) {
-    channel.send(PutRequest(id, value, call))
+    lock.withLock {
+      internalPut(id, value, true)
+    }
+    call.respond(HttpStatusCode.OK)
   }
 
   internal fun internalGet(id: Long): String? {
@@ -78,12 +54,11 @@ class PersistentHashTable(name: String, initial_size: Int = 10000) : HashTable {
   }
 
   internal fun internalPut(id: Long, value: String, log: Boolean = true) {
-    var pos = findPos(id)
-    if (pos == -1) {
+    size++
+    if (n * 0.75 <= size) {
       resize()
-      pos = findPos(id)
-      assert(pos != -1)
     }
+    val pos = findPos(id)
     data[pos] = Node(id, value)
     if (log) logPut(id, value)
   }
@@ -115,15 +90,12 @@ class PersistentHashTable(name: String, initial_size: Int = 10000) : HashTable {
       hash += 1
       hash %= n
       count++
-      if (count > n / 2) {
-        return -1
-      }
     }
     return hash
   }
 
   private fun resize() {
-    n *= 2
+    n = (n.toFloat() * 1.66).toInt()
     val oldData = data
     data = arrayOfNulls(n)
     for (node in oldData) {
@@ -133,6 +105,6 @@ class PersistentHashTable(name: String, initial_size: Int = 10000) : HashTable {
   }
 
   companion object {
-    val logDirectory = Path.of("logs")
+    val logDirectory: Path = Path.of("logs")
   }
 }

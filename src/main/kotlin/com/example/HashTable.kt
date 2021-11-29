@@ -8,6 +8,4 @@ interface HashTable {
   suspend fun put(id: Long, value: String, call: ApplicationCall)
 
   fun restore()
-
-  fun start()
 }

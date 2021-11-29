@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.internal.PartitionedHashTable
 import com.example.internal.PersistentHashTable
 import com.example.model.PutRequest
 import io.ktor.features.*
@@ -19,13 +20,14 @@ import java.util.Random
 class ApplicationTest {
   @Test
   fun testRoot() {
-    withTestApplication({ configureRouting(PersistentHashTable("test_table")) }) {
+    withTestApplication({ configureRouting(PartitionedHashTable("test_table")) }) {
       var random = Random(42)
-      val n = 100
+      val n = 1000000
       for (i in 0..n) {
         val id = random.nextLong()
         handleRequest(HttpMethod.Post, "/") {
-          setBody(Json.encodeToString(PutRequest(id, id.toString())))
+          addHeader(HttpHeaders.ContentType, ContentType.Application.FormUrlEncoded.toString())
+          setBody(listOf("id" to "$id", "value" to "$id").formUrlEncode())
         }
       }
       random = Random(42)

@@ -3,7 +3,7 @@ package com.example.internal
 import com.example.HashTable
 import io.ktor.application.*
 
-class PartitionedHashTable(name: String, private val partitionCount: Int = 2) : HashTable {
+class PartitionedHashTable(name: String, private val partitionCount: Int = 4) : HashTable {
 
   private val hashTables = List(partitionCount) { PersistentHashTable("${name}_$it") }
 
@@ -19,9 +19,5 @@ class PartitionedHashTable(name: String, private val partitionCount: Int = 2) : 
 
   override fun restore() {
     hashTables.forEach { it.restore() }
-  }
-
-  override fun start() {
-    hashTables.forEach { it.start() }
   }
 }
