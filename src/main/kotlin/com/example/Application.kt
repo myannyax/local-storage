@@ -8,7 +8,6 @@ import com.example.plugins.*
 fun main(args: Array<String>) {
   embeddedServer(Netty, port = args[0].toIntOrNull() ?: 8080, host = "0.0.0.0") {
     val hashTable = PartitionedHashTable("main_table")
-    configureMonitoring()
     configureRouting(hashTable)
   }.start(wait = true)
 }
