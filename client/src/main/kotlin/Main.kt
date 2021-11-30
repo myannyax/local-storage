@@ -11,14 +11,17 @@ import java.util.concurrent.atomic.AtomicInteger
 
 fun main(args: Array<String>) {
   val start = System.currentTimeMillis()
-  val n = 3000000
+  val port = args[0].toInt()
+  val n = args[1].toInt()
+  val get = args.getOrNull(2) == "get" || args.getOrNull(3) == "get"
+  val put = args.getOrNull(2) == "put" || args.getOrNull(3) == "put"
   val batch = 100
   val count = AtomicInteger()
   val client = HttpClient(Apache) {
     engine {
       followRedirects = true
-      socketTimeout = 10_000
-      connectTimeout = 10_000
+      //socketTimeout = 10_000
+      //connectTimeout = 10_000
       connectionRequestTimeout = 20_000
       customizeClient {
         setMaxConnTotal(1000)
@@ -26,36 +29,41 @@ fun main(args: Array<String>) {
       }
     }
   }
-  runBlocking {
-    val random = Random(42)
-    repeat(n / batch) {
-      (0 until batch).map {
-        val id = random.nextLong()
-        count.incrementAndGet()
-        async {
-          client.request<String>("http://0.0.0.0:8080/") {
-            method = HttpMethod.Post
-            headers.append(HttpHeaders.ContentType, ContentType.Application.FormUrlEncoded.toString())
-            body = listOf("id" to "$id", "value" to "$id").formUrlEncode()
+  if (put) {
+    runBlocking {
+      val random = Random(42)
+      repeat(n / batch) {
+        (0 until batch).map {
+          val id = random.nextLong()
+          count.incrementAndGet()
+          async {
+            client.request<String>("http://0.0.0.0:$port/") {
+              method = HttpMethod.Post
+              headers.append(HttpHeaders.ContentType, ContentType.Application.FormUrlEncoded.toString())
+              body = listOf("id" to "$id", "value" to "$id").formUrlEncode()
+            }
           }
-        }
-      }.forEach { it.await() }
+        }.forEach { it.await() }
+      }
     }
   }
 
-  println(count.get())
-  runBlocking {
-    val random = Random(42)
-    repeat(n / batch) {
-      (0 until batch).map {
-        val id = random.nextLong()
-        async {
-          client.request<HttpStatement>("http://0.0.0.0:8080/?id=$id") {
-            method = HttpMethod.Get
-          }.receive<String>()
+  //println(count.get())
+
+  if (get) {
+    runBlocking {
+      val random = Random(42)
+      repeat(n / batch) {
+        (0 until batch).map {
+          val id = random.nextLong()
+          async {
+            client.request<HttpStatement>("http://0.0.0.0:$port/?id=$id") {
+              method = HttpMethod.Get
+            }.receive<String>()
+          }
+        }.forEach {
+          it.await()
         }
-      }.forEach {
-        it.await()
       }
     }
   }
