@@ -12,5 +12,5 @@ build/install/local-storage/bin/local-storage
 client/build/install/client/bin/client
 
 ## Notes
-./client 4242 10000000 put get
+`./client 4242 10000000 put get`
 works 42 minutes for me though :(
