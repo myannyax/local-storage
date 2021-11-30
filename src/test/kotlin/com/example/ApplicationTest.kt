@@ -15,12 +15,22 @@ import io.ktor.server.testing.*
 import com.example.plugins.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.junit.AfterClass
 import java.util.Random
 
 class ApplicationTest {
+
+  companion object {
+    @JvmStatic
+    @AfterClass
+    fun cleanup() {
+      PersistentHashTable.logDirectory.resolve("__test").toFile().deleteRecursively()
+    }
+  }
+
   @Test
   fun testRoot() {
-    withTestApplication({ configureRouting(PartitionedHashTable("test_table")) }) {
+    withTestApplication({ configureRouting(PartitionedHashTable("__test/test_table")) }) {
       var random = Random(42)
       val n = 10000000
       for (i in 0..n) {

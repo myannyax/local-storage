@@ -1,3 +1,7 @@
 .gradle
 .idea
 build
+logs
+client/.idea
+client/.gradle
+*.hprof
