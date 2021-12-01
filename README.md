@@ -15,3 +15,4 @@ client/build/install/client/bin/client
 `./client 4242 10000000 put get`
 works 42 minutes for me though :( (I hope it's because i use ktor and it does a lot of different stuff)
 upd: without ktor logging it's 15 minutes
+upd: works 7 minutes on other computer 😈
