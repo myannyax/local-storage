@@ -4,10 +4,10 @@ import com.example.HashTable
 import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.response.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 import kotlin.io.path.createDirectories
 
 class PersistentHashTable(val name: String, initial_size: Int = 10000) : HashTable {
@@ -20,7 +20,7 @@ class PersistentHashTable(val name: String, initial_size: Int = 10000) : HashTab
 
   private var logFile = logDirectory.resolve("${name}_$currentLogId").toFile()
 
-  private val lock = ReentrantLock()
+  private val lock = Mutex()
 
   private var size = 0
 
