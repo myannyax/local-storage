@@ -3,7 +3,7 @@
 ## Build
 ```
 ./gradlew build -x test
-./client/gradlew build -x test
+from client dir ./gradlew build -x test
 ./gradlew installDist
 ./client/gradlew installDist
 ```
