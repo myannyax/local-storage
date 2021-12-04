@@ -17,7 +17,7 @@ fun main(args: Array<String>) {
   val put = args.getOrNull(2) == "put" || args.getOrNull(3) == "put"
   val batch = 100
   val count = AtomicInteger()
-  val client = HttpClient(Apache) {
+  HttpClient(Apache) {
     engine {
       followRedirects = true
       //socketTimeout = 10_000
@@ -28,47 +28,47 @@ fun main(args: Array<String>) {
         setMaxConnPerRoute(100)
       }
     }
-  }
-  if (put) {
-    runBlocking {
-      val random = Random(42)
-      repeat(n / batch) {
-        (0 until batch).map {
-          val id = random.nextLong()
-          count.incrementAndGet()
-          async {
-            client.request<String>("http://0.0.0.0:$port/") {
-              method = HttpMethod.Post
-              headers.append(HttpHeaders.ContentType, ContentType.Application.FormUrlEncoded.toString())
-              body = listOf("id" to "$id", "value" to "$id").formUrlEncode()
+  }.use { client ->
+    if (put) {
+      runBlocking {
+        val random = Random(42)
+        repeat(n / batch) {
+          (0 until batch).map {
+            val id = random.nextLong()
+            count.incrementAndGet()
+            async {
+              client.request<String>("http://0.0.0.0:$port/") {
+                method = HttpMethod.Post
+                headers.append(HttpHeaders.ContentType, ContentType.Application.FormUrlEncoded.toString())
+                body = listOf("id" to "$id", "value" to "$id").formUrlEncode()
+              }
             }
-          }
-        }.forEach { it.await() }
+          }.forEach { it.await() }
+        }
       }
     }
-  }
 
-  //println(count.get())
+    //println(count.get())
 
-  if (get) {
-    runBlocking {
-      val random = Random(42)
-      repeat(n / batch) {
-        (0 until batch).map {
-          val id = random.nextLong()
-          async {
-            client.request<HttpStatement>("http://0.0.0.0:$port/?id=$id") {
-              method = HttpMethod.Get
-            }.receive<String>()
+    if (get) {
+      runBlocking {
+        val random = Random(42)
+        repeat(n / batch) {
+          (0 until batch).map {
+            val id = random.nextLong()
+            async {
+              client.request<HttpStatement>("http://0.0.0.0:$port/?id=$id") {
+                method = HttpMethod.Get
+              }.receive<String>()
+            }
+          }.forEach {
+            it.await()
           }
-        }.forEach {
-          it.await()
         }
       }
     }
   }
-  client.close()
 
   val end = System.currentTimeMillis()
-  println("Total time: ${TimeUnit.MILLISECONDS.toMinutes(end - start)}")
+  println("Total time: ${TimeUnit.MILLISECONDS.toSeconds(end - start) / 60.0}")
 }
