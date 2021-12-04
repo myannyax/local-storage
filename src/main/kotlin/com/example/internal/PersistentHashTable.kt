@@ -1,9 +1,6 @@
 package com.example.internal
 
 import com.example.HashTable
-import io.ktor.application.*
-import io.ktor.http.*
-import io.ktor.response.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.nio.file.Files
@@ -35,18 +32,17 @@ class PersistentHashTable(val name: String, initial_size: Int = 10000) : HashTab
     restore()
   }
 
-  override suspend fun get(id: Long, call: ApplicationCall) {
+  override suspend fun get(id: Long): String? {
     val res = lock.withLock {
       internalGet(id)
     }
-    call.respondText(res ?: "not found", status = if (res != null) HttpStatusCode.OK else HttpStatusCode.BadRequest)
+    return res
   }
 
-  override suspend fun put(id: Long, value: String, call: ApplicationCall) {
+  override suspend fun put(id: Long, value: String) {
     lock.withLock {
       internalPut(id, value, true)
     }
-    call.respond(HttpStatusCode.OK)
   }
 
   internal fun internalGet(id: Long): String? {
